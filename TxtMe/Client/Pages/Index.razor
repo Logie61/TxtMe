@@ -1,0 +1,37 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.SignalR.Client
+@using TxtMe.Shared;
+@inject NavigationManager NavigationManager
+<h1>TxtMe</h1>
+
+
+@foreach (var textMessage in textMessages)
+{
+    <TextMessage From="@textMessage.From" To="@textMessage.To" Message="@textMessage.Message" />
+}
+
+@code{
+    private HubConnection hubConnection;
+    private List<TextMessageModel> textMessages = new List<TextMessageModel>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+        .WithUrl(NavigationManager.ToAbsoluteUri("/TextMessages")).Build();
+
+        hubConnection.On<string, string, string>("TextMessageReceived", (from, to, message) =>
+        {
+            TextMessageModel textMessage = new(from, to, message);
+
+            textMessages.Add(textMessage);
+            StateHasChanged();
+        });
+
+        await hubConnection.StartAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await hubConnection.DisposeAsync();
+    }
+}
